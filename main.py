@@ -6,11 +6,35 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from motor.motor_asyncio import AsyncIOMotorClient
+from contextlib import asynccontextmanager
+
+
 from app.routes import users
 from app.config import settings
 
 
 app = FastAPI()
+
+
+MONGO_URI =settings.MONGO_URI
+MONGO_DB = settings.MONGO_DB
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("___________________>", MONGO_URI)
+
+    mongo_client = AsyncIOMotorClient(MONGO_URI)
+    app.state.mongo_client = mongo_client
+    app.state.mongo_db = mongo_client[MONGO_DB]
+    print("✅ Connected to MongoDB")
+
+    yield  # Run the app
+
+    # Shutdown
+    mongo_client.close()
+    print("❌ Disconnected from MongoDB")
 
 
 routers = [
