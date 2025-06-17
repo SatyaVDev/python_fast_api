@@ -10,6 +10,7 @@ routers = [
 
 
 for router, prefix in routers:
+    print(f"Registering router with prefix: {prefix}")
     app.include_router(router, prefix=prefix)
 
 
@@ -19,4 +20,4 @@ def read_root():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8081, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8082, reload=True)
