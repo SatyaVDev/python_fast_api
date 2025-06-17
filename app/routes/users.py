@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.controller import users_controller
 
@@ -6,9 +6,11 @@ router = APIRouter()
 
 
 @router.get("/users")
-def get_users(user_id : int):
+def get_users(request: Request, user_id: int):
     try:
-        return users_controller.get_all_users(user_id)
+        db = request.app.state.mongo_db
+
+        return users_controller.get_all_users(db, user_id)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

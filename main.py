@@ -1,41 +1,46 @@
-import uvicorn
-from fastapi import FastAPI ,Request
-
-
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from motor.motor_asyncio import AsyncIOMotorClient
 from contextlib import asynccontextmanager
 
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from motor.motor_asyncio import AsyncIOMotorClient
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.routes import users
 from app.config import settings
+from app.routes import users
+
+# app = FastAPI()
 
 
-app = FastAPI()
-
-
-MONGO_URI =settings.MONGO_URI
+MONGO_URI = settings.MONGO_URI
 MONGO_DB = settings.MONGO_DB
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    print("___________________>", MONGO_URI)
+    try:
+        print("Connecting to MongoDB...")
 
-    mongo_client = AsyncIOMotorClient(MONGO_URI)
-    app.state.mongo_client = mongo_client
-    app.state.mongo_db = mongo_client[MONGO_DB]
-    print("✅ Connected to MongoDB")
+        mongo_client = AsyncIOMotorClient(MONGO_URI)
+        await mongo_client.admin.command("ping")  # Check DB connection
+        print("✅ Successfully connected to MongoDB!")
 
-    yield  # Run the app
+        app.state.mongo_client = mongo_client
+        app.state.mongo_db = mongo_client[MONGO_DB]
 
-    # Shutdown
-    mongo_client.close()
-    print("❌ Disconnected from MongoDB")
+        yield  # Run app
 
+    except Exception as e:
+        print(f"❌ MongoDB connection failed: {e}")
+        raise e  # Fail fast if DB is critical
+
+    finally:
+        mongo_client.close()
+        print("❌ Disconnected from MongoDB")
+
+
+# ⬇ Register lifespan here
+app = FastAPI(lifespan=lifespan)
 
 routers = [
     (users.router, "/api/users"),
@@ -62,9 +67,7 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
-
-
 if __name__ == "__main__":
     port = settings.PORT
-   
+
     uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)
