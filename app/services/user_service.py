@@ -1,5 +1,6 @@
 # app/services/user_service.py
 
+
 class UserService:
     def __init__(self):
         # Pretend we have a user database or repo here
